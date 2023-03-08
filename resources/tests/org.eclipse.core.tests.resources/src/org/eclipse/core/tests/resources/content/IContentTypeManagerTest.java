@@ -976,13 +976,23 @@ public class IContentTypeManagerTest extends ContentTypeTest {
 
 	@Test
 	public void testImportFileAssociation() throws CoreException {
+		IPreferencesService service = Platform.getPreferencesService();
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		assertTrue(service.exportPreferences(service.getRootNode(), outputStream, null).isOK());
+
 		IContentTypeManager contentTypeManager = Platform.getContentTypeManager();
 		assertNull(contentTypeManager.findContentTypeFor("*.bug122217"));
-		IPreferencesService service = Platform.getPreferencesService();
 		String prefs = "file_export_version=3.0\n/instance/org.eclipse.core.runtime/content-types/org.eclipse.core.runtime.xml/file-extensions=bug122217";
 		IExportedPreferences exported = service.readPreferences(new ByteArrayInputStream(prefs.getBytes()));
 		assertTrue(service.applyPreferences(exported).isOK());
-		assertNotNull(contentTypeManager.findContentTypeFor("*.bug122217"));
+		try {
+			assertNotNull(contentTypeManager.findContentTypeFor("*.bug122217"));
+		} finally {
+			IExportedPreferences original = service
+					.readPreferences(new ByteArrayInputStream(outputStream.toByteArray()));
+			service.applyPreferences(original);
+		}
+		assertNull(contentTypeManager.findContentTypeFor("*.bug122217"));
 	}
 
 	@Test
